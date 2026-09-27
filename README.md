@@ -27,6 +27,18 @@ cargo run --bin saqctl --release -- pitch enable
 
 This installs the systemd service and starts the daemon. Start the GUI with `saq` to play around with the settings.
 
+### Nix
+
+```sh
+nix build
+nix develop
+```
+
+```sh
+nix run          # gui
+nix run .#daemon # daemon
+```
+
 ### Roadmap
 
 - [x] EQ and presets
@@ -47,6 +59,7 @@ This installs the systemd service and starts the daemon. Start the GUI with `saq
   - [x] Init system integration
   - [ ] Package manager support
       - [x] Arch
+      - [x] Nix
       - [ ] Debian
   - [ ] Desktop environment-like projects
 

@@ -5,7 +5,7 @@ pkgver=0.1.0.r36.g919da2c
 pkgrel=1
 pkgdesc='A real-time easy to use audio enhancer for Linux'
 arch=('x86_64')
-url='https://github.com/mTvare6/saq'
+url='https://github.com/mTvare6/saqol'
 license=('MPL-2.0')
 depends=(
   'gcc-libs'
@@ -23,7 +23,7 @@ makedepends=('cargo' 'git' 'pkgconf')
 provides=("saq=$pkgver")
 conflicts=('saq')
 options=('!lto')
-source=('saq::git+https://github.com/mTvare6/saq.git')
+source=('saq::git+https://github.com/mTvare6/saqol.git')
 sha256sums=('SKIP')
 
 pkgver() {
