@@ -25,7 +25,7 @@ cargo run --bin saqctl --release -- pitch enable
 ./res/install.sh
 ```
 
-This installs the systemd service and starts the daemon. Start the the GUI with `saq` to play around with the settings.
+This installs the systemd service and starts the daemon. Start the GUI with `saq` to play around with the settings.
 
 ### Roadmap
 
@@ -35,7 +35,7 @@ This installs the systemd service and starts the daemon. Start the the GUI with 
 - [ ] UX
   - [x] Persistence
   - [ ] Non-RT features
-  - [x] deamon-mode and IPC support
+  - [x] daemon-mode and IPC support
   - [ ] Configuration files
   - [ ] Detailed IPC error handling
   - [x] Better command-line parsing
@@ -45,7 +45,7 @@ This installs the systemd service and starts the daemon. Start the the GUI with 
   - [ ] Variable sample rate
 - [ ] Desktop integration
   - [x] Init system integration
-  - [ ] Package mangers support
+  - [ ] Package manager support
       - [x] Arch
       - [ ] Debian
   - [ ] Desktop environment-like projects
