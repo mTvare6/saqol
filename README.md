@@ -1,3 +1,5 @@
+![Logo](res/saq_gui.png)
+
 # Śaq
 
 A real-time easy to use audio enhancer for Linux
