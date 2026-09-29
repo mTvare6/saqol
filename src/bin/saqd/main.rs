@@ -17,6 +17,7 @@ use std::sync::{
 use std::thread::JoinHandle;
 use tracing::{error, info, warn};
 
+#[derive(Clone)]
 struct AudioStateStore {
     path: Option<PathBuf>,
 }
@@ -153,12 +154,21 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let ipc_server = IpcServer::new(saq_ipc::socket_path()?);
     let state = shared_state.clone();
+    let store = state_store.clone();
 
-    let ipc_result =
-        ipc_server.run_until(Arc::new(move |request| state.handle_query(request)), || {
+    let ipc_result = ipc_server.run_until(
+        Arc::new(move |request| {
+            let (response, event) = state.handle_query(request);
+            if event.is_some() {
+                store.save(&state);
+            }
+            (response, event)
+        }),
+        || {
             // Stops with signals and audio-thread failing
             stop_ipc.load(Ordering::Acquire)
-        });
+        },
+    );
     let audio_failed = audio_failed.load(Ordering::Acquire);
 
     drop(audio_thread);
