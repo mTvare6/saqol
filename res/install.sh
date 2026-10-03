@@ -11,8 +11,12 @@ sudo install -Dm644 res/saq.service /usr/lib/systemd/user/saq.service
 sudo install -Dm644 res/com.epestr.saq.svg /usr/share/icons/hicolor/scalable/apps/com.epestr.saq.svg
 sudo install -Dm644 LICENSE /usr/share/licenses/saq/LICENSE
 
+if systemctl --user cat saqd.service >/dev/null 2>&1; then
+    systemctl --user disable --now saqd.service
+fi
+sudo rm -f /usr/lib/systemd/user/saqd.service
+
 systemctl --user daemon-reload
 systemctl --user enable --now saq.service
-systemctl --user start --now saq.service
 
 printf '%s\n' 'Śaq is running. Control it via the GUI or CLI controller.'
