@@ -1,0 +1,469 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Śaq surround</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --dark0-hard: #1d2021;
+        --dark0-soft: #32302f;
+        --dark2: #504945;
+        --light0: #fbf1c7;
+        --light3: #bdae93;
+        --bright-blue: #83a598;
+        --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        padding: 24px 16px 64px;
+        background: var(--dark0-hard);
+        color: var(--light0);
+        font: 14px/1.5 var(--mono);
+      }
+
+      main {
+        max-width: 720px;
+        margin: 0 auto;
+      }
+
+      h1 {
+        margin: 0 0 4px;
+        font-size: 18px;
+        letter-spacing: 0.04em;
+      }
+
+      p.sub {
+        margin: 0 0 24px;
+        color: var(--light3);
+        font-size: 12px;
+      }
+
+      section {
+        margin-bottom: 28px;
+      }
+
+      h2 {
+        margin: 0 0 10px;
+        font-size: 11px;
+        letter-spacing: 0.16em;
+        color: var(--light3);
+        text-transform: uppercase;
+      }
+
+      .row {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+
+      button {
+        padding: 9px 14px;
+        border: 1px solid var(--dark2);
+        border-radius: 3px;
+        background: var(--dark0-soft);
+        color: var(--light0);
+        font: inherit;
+        cursor: pointer;
+      }
+
+      button:hover:not(:disabled) {
+        border-color: var(--bright-blue);
+      }
+
+      button:disabled {
+        color: var(--dark2);
+        cursor: default;
+      }
+
+      button.primary {
+        background: var(--bright-blue);
+        border-color: var(--bright-blue);
+        color: var(--dark0-hard);
+      }
+
+      select {
+        padding: 6px 8px;
+        border: 1px solid var(--dark2);
+        border-radius: 3px;
+        background: var(--dark0-soft);
+        color: var(--light0);
+        font: inherit;
+      }
+
+      label.slider {
+        display: grid;
+        grid-template-columns: 110px 1fr 62px;
+        gap: 12px;
+        align-items: center;
+        margin-bottom: 12px;
+        font-size: 12px;
+        color: var(--light3);
+      }
+
+      label.slider output {
+        font-variant-numeric: tabular-nums;
+        text-align: right;
+        color: var(--light0);
+      }
+
+      input[type="range"] {
+        width: 100%;
+        accent-color: var(--bright-blue);
+      }
+
+      canvas {
+        display: block;
+        width: 100%;
+        height: 202px;
+        border: 1px solid var(--dark2);
+        border-radius: 3px;
+        touch-action: none;
+        cursor: crosshair;
+      }
+
+      #status {
+        min-height: 1.5em;
+        margin-top: 10px;
+        font-size: 12px;
+        color: var(--light3);
+        overflow-wrap: anywhere;
+      }
+
+      #status.error {
+        color: #d99a8a;
+      }
+
+      #status.playing {
+        color: var(--bright-blue);
+      }
+
+      .meta {
+        margin-top: 10px;
+        font-size: 11px;
+        color: var(--dark2);
+      }
+
+      .transport {
+        display: flex;
+        gap: 16px;
+        align-items: center;
+        margin-top: 14px;
+        font-size: 12px;
+        color: var(--light3);
+      }
+
+      .transport input[type="range"] {
+        flex: 1;
+      }
+
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Śaq surround</h1>
+
+      <section>
+        <h2>Source</h2>
+        <div class="row">
+          <button id="file" class="primary">Open a file…</button>
+          <input id="file-input" type="file" accept="audio/*" hidden />
+          <button id="play" disabled>Play</button>
+          <button id="stop" disabled>Stop</button>
+        </div>
+        <div class="transport">
+          <input id="seek" type="range" min="0" max="1000" value="0" disabled aria-label="Progress" />
+          <span id="clock">0:00 / 0:00</span>
+        </div>
+        <p id="status">Building the audio engine…</p>
+        <p class="meta" id="source-name"></p>
+      </section>
+
+      <section>
+        <h2>Volume</h2>
+        <label class="slider">
+          <span>Volume</span>
+          <input id="volume" type="range" min="0" max="200" value="100" />
+          <output id="volume-out">100%</output>
+        </label>
+        <label class="slider">
+          <span>Surround mix</span>
+          <input id="subwoofer" type="range" min="0" max="100" value="100" step="1" />
+          <output id="subwoofer-out">100%</output>
+        </label>
+      </section>
+
+      <section>
+        <h2>Equaliser</h2>
+        <div class="row" style="margin-bottom: 12px">
+          <select id="preset" aria-label="EQ preset"></select>
+          <button id="reset-eq">Reset curve</button>
+        </div>
+        <canvas id="eq" aria-label="Equaliser response curve"></canvas>
+      </section>
+
+    </main>
+
+    <script type="module">
+      import { SaqAudio } from "./saq-audio.js";
+      import { EqGraph, EQ_PRESET, EQ_SELECTABLE } from "./eq-graph.js";
+
+      const $ = (id) => document.getElementById(id);
+      const status = $("status");
+      const say = (text, kind = "") => {
+        status.textContent = text;
+        status.className = kind;
+      };
+
+      const audio = new SaqAudio();
+      const graph = new EqGraph($("eq"));
+
+      let buffer = null;
+      let source = null;
+      let startedAt = 0;
+      let playbackToken = 0;
+      let pausedAt = 0;
+      let isScrubbing = false;
+      let raf = 0;
+
+      const duration = () => (buffer ? buffer.duration : 0);
+
+      function clock(seconds) {
+        const total = Math.max(0, Math.round(seconds));
+        return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, "0")}`;
+      }
+
+      function tick() {
+        if (!buffer) return;
+        const elapsed = Math.min(audio.context.currentTime - startedAt, duration());
+        if (!isScrubbing) {
+          $("seek").value = String(Math.round((elapsed / Math.max(duration(), 1e-6)) * 1000));
+        }
+        $("clock").textContent = `${clock(elapsed)} / ${clock(duration())}`;
+        raf = requestAnimationFrame(tick);
+      }
+
+      window.__saq = { audio, graph, get context() { return audio.context; }, get buffer() { return buffer; }, get source() { return source; }, get isScrubbing() { return isScrubbing; } };
+
+      function stop() {
+        cancelAnimationFrame(raf);
+        raf = 0;
+        const stopped = source;
+        if (stopped) {
+          pausedAt = Math.max(0, Math.min(duration(), audio.context.currentTime - startedAt));
+          playbackToken += 1;
+          source = null;
+          try {
+            stopped.stop();
+          } catch {}
+          stopped.disconnect();
+        }
+        audio.reset();
+        $("stop").disabled = true;
+        $("play").disabled = !buffer;
+        $("seek").value = String(Math.round((pausedAt / Math.max(duration(), 1e-6)) * 1000));
+        $("clock").textContent = `${clock(pausedAt)} / ${clock(duration())}`;
+        say(buffer ? "Paused" : "Open a file to begin.");
+      }
+
+      function startFrom(offset) {
+        const startAt = Math.min(offset, Math.max(0, duration() - 0.05));
+        const previous = source;
+        source = null;
+        playbackToken += 1;
+        if (previous) {
+          try {
+            previous.stop();
+          } catch {}
+          previous.disconnect();
+        }
+        const token = playbackToken;
+        const node = audio.context.createBufferSource();
+        node.buffer = buffer;
+        node.connect(audio.node);
+        node.onended = () => {
+          if (playbackToken !== token) return;
+          source = null;
+          cancelAnimationFrame(raf);
+          raf = 0;
+          pausedAt = 0;
+          $("stop").disabled = true;
+          $("play").disabled = !buffer;
+          $("seek").value = "0";
+          $("clock").textContent = `0:00 / ${clock(duration())}`;
+          say("Finished. Press Play to run it again.");
+        };
+        source = node;
+        source.start(0, startAt);
+        $("stop").disabled = false;
+        $("play").disabled = true;
+        startedAt = audio.context.currentTime - startAt;
+        pausedAt = startAt;
+        say(`Playing ${$("source-name").textContent || "audio"}`, "playing");
+        cancelAnimationFrame(raf);
+        raf = requestAnimationFrame(tick);
+      }
+
+      async function play() {
+        if (!buffer) return;
+        await audio.resume();
+        audio.reset();
+        startFrom(pausedAt);
+      }
+
+      $("play").addEventListener("click", () => {
+        play().catch((error) => say(error.message, "error"));
+      });
+      $("stop").addEventListener("click", stop);
+
+      async function adopt(audioBuffer, name) {
+        stop();
+        buffer = audioBuffer;
+        $("source-name").textContent = name;
+        $("play").disabled = false;
+        $("seek").disabled = false;
+        $("seek").value = "0";
+        $("clock").textContent = `0:00 / ${clock(audioBuffer.duration)}`;
+        pausedAt = 0;
+        say("Ready. Press Play.");
+      }
+
+      $("seek").addEventListener("pointerdown", () => {
+        isScrubbing = true;
+      });
+      window.addEventListener("pointerup", () => {
+        isScrubbing = false;
+      });
+      $("seek").addEventListener("input", (event) => {
+        if (!buffer) return;
+        isScrubbing = true;
+        const target = (Number(event.target.value) / 1000) * duration();
+        $("clock").textContent = `${clock(target)} / ${clock(duration())}`;
+      });
+      $("seek").addEventListener("change", (event) => {
+        if (!buffer) return;
+        const offset = (Number(event.target.value) / 1000) * duration();
+        isScrubbing = false;
+        if (source !== null) {
+          audio.reset();
+          startFrom(offset);
+        } else {
+          pausedAt = offset;
+          $("clock").textContent = `${clock(pausedAt)} / ${clock(duration())}`;
+          say("Paused");
+        }
+      });
+
+      $("file").addEventListener("click", () => $("file-input").click());
+      $("file-input").addEventListener("change", async (event) => {
+        const file = event.target.files?.[0];
+        event.target.value = "";
+        if (!file) return;
+        try {
+          say("Decoding audio…");
+          const array = new Uint8Array(await file.arrayBuffer());
+          await adopt(await audio.context.decodeAudioData(array.buffer), file.name);
+        } catch (error) {
+          say(`could not decode ${file.name}: ${error.message ?? error}`, "error");
+        }
+      });
+
+      function checkRate(info) {
+        if (!info.rateMatches) {
+          console.warn(
+            `context at ${info.sampleRate} Hz but the engine was captured at ` +
+              `${info.engineSampleRate} Hz; preset curves will be tilted`,
+          );
+        }
+      }
+
+      const select = $("preset");
+      select.replaceChildren(
+        ...EQ_SELECTABLE.map(([label, value]) => {
+          const option = document.createElement("option");
+          option.value = String(value);
+          option.textContent = label;
+          return option;
+        }),
+        Object.assign(document.createElement("option"), {
+          value: String(EQ_PRESET.Custom),
+          textContent: "CUSTOM",
+          disabled: true,
+        }),
+      );
+
+      async function responseFor(preset) {
+        return audio.presetResponse(preset, Array.from(graph.bands));
+      }
+
+      async function applyPreset(preset) {
+        const response = await responseFor(preset);
+        graph.setPreset(preset, Float32Array.from(response));
+        pushEq();
+        graph.draw();
+      }
+
+      function pushEq() {
+        const { preset, base, points, frequencies, gains } = graph.profile();
+        audio.setEq({ preset, base, points, freqs: frequencies, gains });
+        if (preset === EQ_PRESET.Custom) {
+          select.value = String(EQ_PRESET.Custom);
+        }
+      }
+
+      graph.onChange = () => pushEq();
+      graph.onCommit = () => pushEq();
+
+      select.addEventListener("change", async (event) => {
+        await applyPreset(Number(event.target.value));
+      });
+
+      $("reset-eq").addEventListener("click", async () => {
+        graph.preset = graph.basePreset;
+        graph.resetCurve();
+        pushEq();
+        graph.draw();
+        await applyPreset(graph.basePreset);
+      });
+
+      window.addEventListener("resize", () => {
+        graph.resize();
+        graph.draw();
+      });
+
+      const volume = $("volume");
+      volume.addEventListener("input", () => {
+        const percent = Number(volume.value);
+        $("volume-out").textContent = `${percent}%`;
+        audio.param("volume", percent / 100);
+      });
+
+      const subwoofer = $("subwoofer");
+      subwoofer.addEventListener("input", () => {
+        const percent = Number(subwoofer.value);
+        $("subwoofer-out").textContent = `${percent}%`;
+        audio.param("subwoofer", percent / 100);
+      });
+
+      audio.ready().then(async (info) => {
+        graph.setBands(info.eqBands);
+        checkRate(info);
+        await applyPreset(EQ_PRESET.Off);
+        volume.dispatchEvent(new Event("input"));
+        subwoofer.dispatchEvent(new Event("input"));
+        graph.draw();
+        say("Open a file to begin.");
+      }).catch((error) => {
+        say(`engine failed to start: ${error.message}`, "error");
+        $("play").disabled = true;
+      });
+    </script>
+  </body>
+</html>

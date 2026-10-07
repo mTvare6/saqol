@@ -235,6 +235,14 @@ impl InterpolatedStereoFir {
         output
     }
 
+    pub(crate) fn latency_frames(&self) -> usize {
+        BLOCK_SIZE
+    }
+
+    pub(crate) fn response_frames(&self) -> usize {
+        (self.partitions + 1) * BLOCK_SIZE
+    }
+
     pub(crate) fn reset(&mut self) {
         for channel in self.input_history.iter_mut() {
             for partition in channel {

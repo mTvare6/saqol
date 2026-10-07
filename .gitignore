@@ -1,1 +1,2 @@
-/target
+target
+crates/saq-web/static/saq.wasm
