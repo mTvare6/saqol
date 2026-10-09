@@ -1,0 +1,5 @@
+{
+  "name": "saq-web",
+  "private": true,
+  "description": "Browser half of Śaq: surround and EQ, wasm + AudioWorklet."
+}

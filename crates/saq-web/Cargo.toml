@@ -1,0 +1,19 @@
+[package]
+name = "saq-web"
+version = "0.1.0"
+edition = "2024"
+license = "MPL-2.0"
+publish = false
+
+[workspace]
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+saq-dsp = { path = "../saq-dsp", default-features = false, features = ["wasm"] }
+
+[profile.release]
+panic = "abort"
+lto = true
+codegen-units = 1
