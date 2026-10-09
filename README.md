@@ -1,8 +1,13 @@
-![Logo](res/saq_gui.png)
-
 # Śaq
 
 A real-time easy to use audio enhancer for Linux
+
+![Logo](res/saq_gui.png)
+
+Checkout the cross-platform web version here which supports cross-tab capture and simple audio playback: https://mtvare6.github.io/saqol/
+
+The cross-tab capture doesn't work on Firefox, or Qt-based browsers and probably more.
+At least Chrom(ium|e) works.
 
 ### Libraries
 
