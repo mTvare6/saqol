@@ -110,6 +110,11 @@
         border-color: var(--bright-aqua);
       }
 
+      button.selected {
+        border-color: var(--bright-orange);
+        color: var(--bright-orange);
+      }
+
       .icon-button {
         display: grid;
         width: 29px;
@@ -346,6 +351,9 @@
           <svg viewBox="0 0 13 13" aria-hidden="true"><path d="M0 2h5l2 2h6v8H0zm1 3v6h11V5z" /></svg>
         </button>
         <input id="file-input" type="file" accept="audio/*" hidden />
+        <button id="capture" class="icon-button" disabled aria-label="Capture tab audio" aria-pressed="false" title="Capture tab audio">
+          <svg viewBox="0 0 13 13" aria-hidden="true"><path d="M0 1h13v9H8v1h2v1H3v-1h2v-1H0zm1 1v7h11V2zM3 6h1v2H3zm2-2h1v4H5zm2 1h1v3H7zm2-2h1v5H9z" /></svg>
+        </button>
         <button id="play" class="icon-button" disabled aria-label="Play" title="Play">
           <svg viewBox="0 0 13 13" aria-hidden="true"><path d="M2 1h2v2h2v2h2v2H6v2H4v2H2z" /></svg>
         </button>
@@ -400,6 +408,8 @@
 
       let buffer = null;
       let source = null;
+      let captureStream = null;
+      let captureSource = null;
       let startedAt = 0;
       let playbackToken = 0;
       let pausedAt = 0;
@@ -458,9 +468,16 @@
           playbackToken += 1;
           releaseSource();
         }
+        captureSource?.disconnect();
+        captureSource = null;
+        captureStream?.getTracks().forEach((track) => track.stop());
+        captureStream = null;
+        $("capture").classList.remove("selected");
+        $("capture").setAttribute("aria-pressed", "false");
         audio.reset();
         $("stop").disabled = true;
         $("play").disabled = !buffer;
+        $("seek").disabled = !buffer;
         setSlider($("seek"), Math.round((pausedAt / Math.max(duration(), 1e-6)) * 1000));
         $("clock").textContent = `${clock(pausedAt)} / ${clock(duration())}`;
       }
@@ -504,6 +521,53 @@
         play().catch((error) => showError(error.message));
       });
       $("stop").addEventListener("click", stop);
+
+      async function captureTab() {
+        const stream = await navigator.mediaDevices.getDisplayMedia({
+          video: { displaySurface: "browser" },
+          audio: {
+            channelCount: 2,
+            echoCancellation: false,
+            suppressLocalAudioPlayback: true,
+          },
+        });
+        const [track] = stream.getAudioTracks();
+        if (track?.getSettings().channelCount !== 2) {
+          stream.getTracks().forEach((item) => item.stop());
+          throw new Error("select a browser tab with stereo audio sharing");
+        }
+
+        stop();
+        captureStream = stream;
+        try {
+          await audio.resume();
+          captureSource = audio.context.createMediaStreamSource(stream);
+          captureSource.connect(audio.node);
+          track.addEventListener("ended", () => {
+            if (captureStream === stream) stop();
+          }, { once: true });
+
+          $("capture").classList.add("selected");
+          $("capture").setAttribute("aria-pressed", "true");
+          $("play").disabled = true;
+          $("stop").disabled = false;
+          $("seek").disabled = true;
+          setSlider($("seek"), 0);
+          $("clock").textContent = "LIVE";
+        } catch (error) {
+          stop();
+          throw error;
+        }
+      }
+
+      $("capture").addEventListener("click", () => {
+        status.textContent = "";
+        if (captureStream) {
+          stop();
+        } else {
+          captureTab().catch((error) => showError(error.message));
+        }
+      });
 
       async function adopt(audioBuffer) {
         stop();
@@ -695,6 +759,7 @@
         }
         await applyPreset(EQ_PRESET.Off);
         volume.dispatchEvent(new Event("input"));
+        $("capture").disabled = !navigator.mediaDevices?.getDisplayMedia;
         surroundToggle.disabled = false;
         setSubwoofer(1);
         setSurround(true);
@@ -702,6 +767,7 @@
       }).catch((error) => {
         showError(`engine failed to start: ${error.message}`);
         $("play").disabled = true;
+        $("capture").disabled = true;
         surroundToggle.disabled = true;
       });
     </script>
