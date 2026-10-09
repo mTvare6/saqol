@@ -6,8 +6,8 @@ cd "$(dirname "$0")"
 TARGET=wasm32-unknown-unknown
 PROFILE=release
 
-echo "==> cargo build --target $TARGET --$PROFILE"
-cargo build --$PROFILE --target "$TARGET"
+echo "==> cargo build --locked --target $TARGET --$PROFILE"
+cargo build --locked --$PROFILE --target "$TARGET"
 
 echo "==> copying module into static/"
 cp "target/$TARGET/$PROFILE/saq_web.wasm" static/saq.wasm

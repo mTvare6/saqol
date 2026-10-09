@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MPL-2.0
 
-export const DARK0_HARD = "#1d2021";
-export const DARK0_SOFT = "#32302f";
-export const DARK2 = "#504945";
-export const LIGHT0 = "#fbf1c7";
-export const LIGHT3 = "#bdae93";
-export const BRIGHT_BLUE = "#83a598";
+const DARK0_HARD = "#1d2021";
+const DARK0_SOFT = "#32302f";
+const DARK2 = "#504945";
+const LIGHT0 = "#fbf1c7";
+const LIGHT3 = "#bdae93";
+const BRIGHT_BLUE = "#83a598";
 
 export const EQ_PRESET = {
   Off: 0,
@@ -44,10 +44,10 @@ export const EQ_SELECTABLE = [
   ["DIALOGUE", EQ_PRESET.Dialogue],
 ];
 
-export const MAX_POINTS = 128;
-export const MAX_GAIN_DB = 12;
+const MAX_POINTS = 128;
+const MAX_GAIN_DB = 12;
 
-export function frequencyLabel(frequency) {
+function frequencyLabel(frequency) {
   if (frequency >= 1000) {
     const khz = frequency / 1000;
     return Math.abs(khz - Math.round(khz)) < 0.05
@@ -57,7 +57,7 @@ export function frequencyLabel(frequency) {
   return `${Math.round(frequency)}`;
 }
 
-export function sampledValues(frequency, frequencies, values) {
+function sampledValues(frequency, frequencies, values) {
   if (frequency <= frequencies[0]) return values[0];
   if (frequency >= frequencies[frequencies.length - 1]) return values[values.length - 1];
   for (let index = 0; index < frequencies.length - 1; index += 1) {
@@ -70,24 +70,6 @@ export function sampledValues(frequency, frequencies, values) {
     }
   }
   return values[values.length - 1];
-}
-
-export function insertEqPoint(state, frequency, gainDb) {
-  if (state.pointCount >= MAX_POINTS) return null;
-  const clamped = Math.min(20000, Math.max(20, frequency));
-  const count = state.pointCount;
-
-  let insertion = 0;
-  while (insertion < count && state.frequencies[insertion] < clamped) insertion += 1;
-
-  for (let index = count; index > insertion; index -= 1) {
-    state.frequencies[index] = state.frequencies[index - 1];
-    state.gains[index] = state.gains[index - 1];
-  }
-  state.frequencies[insertion] = clamped;
-  state.gains[insertion] = Math.min(MAX_GAIN_DB, Math.max(-MAX_GAIN_DB, gainDb));
-  state.pointCount += 1;
-  return insertion;
 }
 
 const MIN_DB = -36;
@@ -109,9 +91,7 @@ export class EqGraph {
     this.resetCurve();
 
     this.activeHandle = null;
-    this.dragging = null;
     this.onChange = () => {};
-    this.onCommit = () => {};
 
     this.graph = { left: 42, top: 10, right: 12, bottom: 26 };
     this.#bindPointer();
@@ -122,7 +102,6 @@ export class EqGraph {
     this.bands = Float32Array.from(bands);
     this.baseResponse = new Float32Array(this.bands.length);
     this.resetCurve();
-    return this;
   }
 
   resize() {
@@ -140,34 +119,29 @@ export class EqGraph {
       right: width - this.graph.right,
       bottom: height - this.graph.bottom,
     };
-    return this;
-  }
-
-  get graphWidth() {
-    return this.rect.right - this.rect.left;
-  }
-
-  get graphHeight() {
-    return this.rect.bottom - this.rect.top;
   }
 
   xForFrequency(frequency) {
     const amount = Math.log(frequency / 20) / Math.log(20000 / 20);
-    return this.rect.left + Math.min(1, Math.max(0, amount)) * this.graphWidth;
+    return this.rect.left + Math.min(1, Math.max(0, amount)) * (this.rect.right - this.rect.left);
   }
 
   frequencyForX(x) {
-    const amount = Math.min(1, Math.max(0, (x - this.rect.left) / this.graphWidth));
+    const amount = Math.min(
+      1,
+      Math.max(0, (x - this.rect.left) / (this.rect.right - this.rect.left)),
+    );
     return 20 * Math.pow(20000 / 20, amount);
   }
 
   yForDb(db) {
     const amount = (MAX_DB - db) / (MAX_DB - MIN_DB);
-    return this.rect.top + Math.min(1, Math.max(0, amount)) * this.graphHeight;
+    return this.rect.top + Math.min(1, Math.max(0, amount)) * (this.rect.bottom - this.rect.top);
   }
 
   dbForY(y) {
-    return MAX_DB - Math.min(1, Math.max(0, (y - this.rect.top) / this.graphHeight)) * (MAX_DB - MIN_DB);
+    const amount = (y - this.rect.top) / (this.rect.bottom - this.rect.top);
+    return MAX_DB - Math.min(1, Math.max(0, amount)) * (MAX_DB - MIN_DB);
   }
 
   get displayedBase() {
@@ -201,8 +175,7 @@ export class EqGraph {
   setPreset(preset, response) {
     this.preset = preset;
     this.basePreset = preset;
-    if (response) this.baseResponse.set(response);
-    else this.baseResponse.fill(0);
+    this.baseResponse.set(response);
     this.resetCurve();
     this.activeHandle = null;
   }
@@ -243,6 +216,22 @@ export class EqGraph {
     }
   }
 
+  #insertPoint(frequency, gainDb) {
+    if (this.pointCount >= MAX_POINTS) return null;
+    const clamped = Math.min(20000, Math.max(20, frequency));
+    let insertion = 0;
+    while (insertion < this.pointCount && this.frequencies[insertion] < clamped) insertion += 1;
+
+    for (let index = this.pointCount; index > insertion; index -= 1) {
+      this.frequencies[index] = this.frequencies[index - 1];
+      this.gains[index] = this.gains[index - 1];
+    }
+    this.frequencies[insertion] = clamped;
+    this.gains[insertion] = Math.min(MAX_GAIN_DB, Math.max(-MAX_GAIN_DB, gainDb));
+    this.pointCount += 1;
+    return insertion;
+  }
+
   #bindPointer() {
     this.canvas.addEventListener("pointerdown", (event) => {
       const { x, y } = this.#toLocal(event);
@@ -254,7 +243,7 @@ export class EqGraph {
       } else if (this.pointCount < MAX_POINTS) {
         this.#enterCustom();
         const frequency = this.frequencyForX(x);
-        this.activeHandle = insertEqPoint(this, frequency, this.dbForY(y) - this.baseAt(frequency));
+        this.activeHandle = this.#insertPoint(frequency, this.dbForY(y) - this.baseAt(frequency));
       } else {
         this.activeHandle = null;
       }
@@ -284,20 +273,19 @@ export class EqGraph {
       this.activeHandle = null;
       this.canvas.releasePointerCapture?.(event.pointerId);
       this.draw();
-      this.onCommit();
+      this.onChange();
     };
     this.canvas.addEventListener("pointerup", finish);
     this.canvas.addEventListener("pointercancel", finish);
     this.canvas.addEventListener("pointerleave", () => {
-      this.#hideTooltip();
-      this.draw();
+      this.canvas.title = "";
     });
   }
 
   #updateTooltip(x) {
     const { index, distance } = this.nearestHandle(x);
     if (index === null) {
-      this.#hideTooltip();
+      this.canvas.title = "";
       return;
     }
     const existing = this.frequencies[index];
@@ -309,12 +297,7 @@ export class EqGraph {
       : this.pointCount < MAX_POINTS
         ? "click to add a point here"
         : "point storage is full";
-    this.tooltip = `${frequencyLabel(frequency)}  ${db >= 0 ? "+" : ""}${db.toFixed(1)} dB — ${hint}`;
-    this.canvas.title = this.tooltip;
-  }
-
-  #hideTooltip() {
-    this.canvas.title = "";
+    this.canvas.title = `${frequencyLabel(frequency)}  ${db >= 0 ? "+" : ""}${db.toFixed(1)} dB — ${hint}`;
   }
 
   draw() {

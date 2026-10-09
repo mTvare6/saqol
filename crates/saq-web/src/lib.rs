@@ -4,9 +4,12 @@
 
 use std::sync::atomic::{AtomicPtr, Ordering};
 
-pub use saq_dsp::{EQ_BAND_COUNT, EQ_BAND_FREQUENCIES, EQ_MAX_POINTS};
-use saq_dsp::{EqEngine, EqPreset, EqProfile, SAMPLE_RATE, SurroundEngine};
-pub const MAX_FRAMES: usize = 1024;
+use saq_dsp::{
+    EQ_BAND_COUNT, EQ_BAND_FREQUENCIES, EQ_MAX_POINTS, EqEngine, EqPreset, EqProfile, SAMPLE_RATE,
+    SurroundEngine,
+};
+
+const MAX_FRAMES: usize = 1024;
 
 const SCRATCH_FLOATS: usize = MAX_FRAMES * 4 + EQ_MAX_POINTS * 2;
 
@@ -21,6 +24,7 @@ static mut SCRATCH: [f32; SCRATCH_FLOATS] = [0.0; SCRATCH_FLOATS];
 
 struct Chain {
     surround: Box<SurroundEngine>,
+    surround_enabled: bool,
     eq: Box<EqEngine>,
     subwoofer: f32,
 }
@@ -29,6 +33,7 @@ impl Chain {
     fn new() -> Self {
         Self {
             surround: SurroundEngine::new(),
+            surround_enabled: true,
             eq: EqEngine::new(),
             subwoofer: 1.0,
         }
@@ -36,7 +41,11 @@ impl Chain {
 
     #[inline]
     fn process(&mut self, left: f32, right: f32) -> (f32, f32) {
-        let (left, right) = self.surround.process(left, right, self.subwoofer);
+        let (left, right) = if self.surround_enabled {
+            self.surround.process(left, right, self.subwoofer)
+        } else {
+            (left, right)
+        };
         self.eq.process(left, right)
     }
 }
@@ -85,19 +94,18 @@ pub extern "C" fn saq_sample_rate() -> u32 {
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn saq_latency_frames() -> u32 {
-    chain().surround.latency_frames() as u32
-}
-
-#[unsafe(no_mangle)]
-pub extern "C" fn saq_response_frames() -> u32 {
-    chain().surround.response_frames() as u32
-}
-
-#[unsafe(no_mangle)]
 pub extern "C" fn saq_set_subwoofer(value: f32) {
     if value.is_finite() {
         chain().subwoofer = value.clamp(0.0, 1.0);
+    }
+}
+
+#[unsafe(no_mangle)]
+pub extern "C" fn saq_set_surround_enabled(enabled: bool) {
+    let chain = chain();
+    if chain.surround_enabled != enabled {
+        chain.surround.reset();
+        chain.surround_enabled = enabled;
     }
 }
 
@@ -175,16 +183,6 @@ pub unsafe extern "C" fn saq_eq_response_db(
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn saq_preset_count() -> u32 {
-    EqPreset::SELECTABLE.len() as u32
-}
-
-#[unsafe(no_mangle)]
-pub extern "C" fn saq_eq_point_count() -> u32 {
-    EQ_MAX_POINTS as u32
-}
-
-#[unsafe(no_mangle)]
 pub extern "C" fn saq_eq_band_count() -> u32 {
     EQ_BAND_COUNT as u32
 }
@@ -195,14 +193,4 @@ pub extern "C" fn saq_eq_band_frequency(index: u32) -> f32 {
         .get(index as usize)
         .copied()
         .unwrap_or_default()
-}
-
-#[unsafe(no_mangle)]
-pub extern "C" fn saq_preset_label(preset: u32) -> *const u8 {
-    EqPreset::from_u8(preset as u8).label().as_ptr()
-}
-
-#[unsafe(no_mangle)]
-pub extern "C" fn saq_preset_label_len(preset: u32) -> u32 {
-    EqPreset::from_u8(preset as u8).label().len() as u32
 }

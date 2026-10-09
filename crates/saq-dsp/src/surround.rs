@@ -43,14 +43,6 @@ impl SurroundEngine {
         self.fir.process(left, right, subwoofer)
     }
 
-    pub fn latency_frames(&self) -> usize {
-        self.fir.latency_frames()
-    }
-
-    pub fn response_frames(&self) -> usize {
-        self.fir.response_frames()
-    }
-
     pub fn reset(&mut self) {
         self.fir.reset();
     }

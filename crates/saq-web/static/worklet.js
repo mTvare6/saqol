@@ -1,12 +1,5 @@
 // SPDX-License-Identifier: MPL-2.0
 
-const PARAM_VOLUME = 0;
-const PARAM_SUBWOOFER = 1;
-
-const PARAM_NAMES = ["volume", "subwoofer"];
-
-const PARAM_DEFAULTS = [1, 1];
-
 class SaqProcessor extends AudioWorkletProcessor {
   static get parameterDescriptors() {
     return [
@@ -69,12 +62,6 @@ class SaqProcessor extends AudioWorkletProcessor {
           sampleRate,
           engineSampleRate,
           rateMatches: sampleRate === engineSampleRate,
-          latencyFrames: exports.saq_latency_frames(),
-          responseFrames: exports.saq_response_frames(),
-          maxFrames,
-          presetCount: exports.saq_preset_count(),
-          eqPointCount: exports.saq_eq_point_count(),
-          eqBandCount,
           eqBands,
         });
       })
@@ -112,6 +99,10 @@ class SaqProcessor extends AudioWorkletProcessor {
         this.exports.saq_reset();
         break;
       }
+      case "surround": {
+        this.exports.saq_set_surround_enabled(message.enabled);
+        break;
+      }
       case "response": {
         const { preset, frequencies, token } = message;
         this.floats.set(frequencies, this.layout.freqs);
@@ -132,14 +123,6 @@ class SaqProcessor extends AudioWorkletProcessor {
       default:
         break;
     }
-  }
-
-  param(parameters, index) {
-    const fallback = PARAM_DEFAULTS[index] ?? 1;
-
-    const perParam = parameters?.[PARAM_NAMES[index]] ?? parameters?.[index];
-    const value = perParam?.[0];
-    return Number.isFinite(value) ? value : fallback;
   }
 
   process(inputs, outputs, parameters) {
@@ -185,8 +168,9 @@ class SaqProcessor extends AudioWorkletProcessor {
       view[inR + frame] = sourceRight[frame];
     }
 
-    const sub = this.param(parameters, PARAM_SUBWOOFER);
-    const vol = this.param(parameters, PARAM_VOLUME);
+    const param = (name) => parameters[name]?.[0] ?? 1;
+    const sub = param("subwoofer");
+    const vol = param("volume");
     this.exports.saq_set_subwoofer(sub);
     this.exports.saq_process(frames, vol);
 

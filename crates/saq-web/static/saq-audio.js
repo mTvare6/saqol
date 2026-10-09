@@ -1,25 +1,14 @@
 // SPDX-License-Identifier: MPL-2.0
 
-const PARAM_NAMES = ["volume", "subwoofer"];
-
 export class SaqAudio {
   #context = null;
   #node = null;
-  #source = null;
-  #info = null;
   #ready;
   #pendingResponse = new Map();
   #responseToken = 0;
 
-  constructor({ workletUrl = "./worklet.js", wasmUrl = "./saq.wasm", sampleRate = 48000 } = {}) {
-    this.workletUrl = workletUrl;
-    this.wasmUrl = wasmUrl;
-    this.requestedSampleRate = sampleRate;
-    this.#ready = this.#build();
-  }
-
-  get info() {
-    return this.#info;
+  constructor(options = {}) {
+    this.#ready = this.#build(options);
   }
 
   get context() {
@@ -30,32 +19,31 @@ export class SaqAudio {
     return this.#node;
   }
 
-  async ready() {
-    await this.#ready;
-    return this.#info;
+  ready() {
+    return this.#ready;
   }
 
-  async #build() {
-    this.#context = new AudioContext({ sampleRate: this.requestedSampleRate });
+  async #build({ workletUrl = "./worklet.js", wasmUrl = "./saq.wasm", sampleRate = 48000 }) {
+    this.#context = new AudioContext({ sampleRate });
 
-    const [wasm, workletUrl] = await Promise.all([
-      fetch(this.wasmUrl).then((response) => {
+    const [wasm, workletModule] = await Promise.all([
+      fetch(wasmUrl).then((response) => {
         if (!response.ok) {
-          throw new Error(`fetching ${this.wasmUrl}: ${response.status}`);
+          throw new Error(`fetching ${wasmUrl}: ${response.status}`);
         }
         return response.arrayBuffer();
       }),
-      new URL(this.workletUrl, import.meta.url).href,
+      new URL(workletUrl, import.meta.url).href,
     ]);
 
-    await this.#context.audioWorklet.addModule(workletUrl);
+    await this.#context.audioWorklet.addModule(workletModule);
 
     this.#node = new AudioWorkletNode(this.#context, "saq-processor", {
       numberOfInputs: 1,
       numberOfOutputs: 1,
       outputChannelCount: [2],
       processorOptions: { wasm },
-      parameterData: Object.fromEntries(PARAM_NAMES.map((name) => [name, 1])),
+      parameterData: { volume: 1, subwoofer: 1 },
     });
 
     const ready = new Promise((resolve, reject) => {
@@ -84,8 +72,7 @@ export class SaqAudio {
 
     this.#node.connect(this.#context.destination);
 
-    this.#info = await ready;
-    return this.#info;
+    return ready;
   }
 
   async resume() {
@@ -96,41 +83,8 @@ export class SaqAudio {
     return this.#context.state;
   }
 
-  async play(buffer) {
-    await this.resume();
-    this.stop();
-    this.#source = this.#context.createBufferSource();
-    this.#source.buffer = buffer;
-    this.#source.connect(this.#node);
-    this.#source.start();
-    return this.#source;
-  }
-
-  stop() {
-    if (this.#source) {
-      try {
-        this.#source.stop();
-      } catch {}
-      this.#source.disconnect();
-      this.#source = null;
-    }
-  }
-
   reset() {
     this.#node.port.postMessage({ type: "reset" });
-    return this.latencyMs();
-  }
-
-  latencyMs() {
-    return this.#framesToMs(this.#info?.latencyFrames ?? 0);
-  }
-
-  responseMs() {
-    return this.#framesToMs(this.#info?.responseFrames ?? 0);
-  }
-
-  #framesToMs(frames) {
-    return (frames / (this.#info?.sampleRate ?? 48000)) * 1000;
   }
 
   param(name, value) {
@@ -142,10 +96,6 @@ export class SaqAudio {
     return parameter;
   }
 
-  getParam(name) {
-    return this.#node?.parameters.get(name)?.value;
-  }
-
   setEq({ preset, base = preset, points = 31, freqs, gains }) {
     this.#node.port.postMessage({
       type: "eq",
@@ -155,6 +105,10 @@ export class SaqAudio {
       freqs: freqs ?? new Float32Array(points),
       gains: gains ?? new Float32Array(points),
     });
+  }
+
+  setSurround(enabled) {
+    this.#node.port.postMessage({ type: "surround", enabled });
   }
 
   presetResponse(preset, frequencies) {

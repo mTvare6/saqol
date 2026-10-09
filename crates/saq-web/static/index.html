@@ -3,17 +3,25 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Śaq surround</title>
+    <title>Śaq</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&display=swap" rel="stylesheet" />
     <style>
       :root {
         color-scheme: dark;
         --dark0-hard: #1d2021;
+        --dark0: #282828;
         --dark0-soft: #32302f;
         --dark2: #504945;
         --light0: #fbf1c7;
+        --light1: #ebdbb2;
         --light3: #bdae93;
         --bright-blue: #83a598;
-        --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        --bright-aqua: #8ec07c;
+        --bright-orange: #fe8019;
+        --logo-black: #281812;
+        --pixel: "Silkscreen", "Departure Mono", "Lucida Console", monospace;
       }
 
       * {
@@ -22,38 +30,46 @@
 
       body {
         margin: 0;
-        padding: 24px 16px 64px;
+        min-height: 100vh;
+        padding: 24px 18px;
         background: var(--dark0-hard);
-        color: var(--light0);
-        font: 14px/1.5 var(--mono);
+        color: var(--light1);
+        font: 12px/1.4 var(--pixel);
       }
 
       main {
-        max-width: 720px;
+        width: min(708px, 100%);
         margin: 0 auto;
+        padding: 10px 18px 18px;
+        background: var(--dark0);
+      }
+
+      .titlebar {
+        display: flex;
+        min-height: 32px;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .logo {
+        width: 24px;
+        height: 24px;
+        flex: 0 0 auto;
+        shape-rendering: crispEdges;
       }
 
       h1 {
-        margin: 0 0 4px;
-        font-size: 18px;
+        margin: 0;
+        color: var(--light0);
+        font-size: 16px;
+        font-weight: 500;
         letter-spacing: 0.04em;
       }
 
-      p.sub {
-        margin: 0 0 24px;
+      .label {
+        flex: 0 0 auto;
         color: var(--light3);
-        font-size: 12px;
-      }
-
-      section {
-        margin-bottom: 28px;
-      }
-
-      h2 {
-        margin: 0 0 10px;
-        font-size: 11px;
-        letter-spacing: 0.16em;
-        color: var(--light3);
+        font-size: 10px;
         text-transform: uppercase;
       }
 
@@ -61,16 +77,23 @@
         display: flex;
         gap: 8px;
         align-items: center;
-        flex-wrap: wrap;
+      }
+
+      .source-row {
+        min-height: 42px;
+        padding: 6px 0;
+        border-top: 1px solid var(--dark0-soft);
       }
 
       button {
-        padding: 9px 14px;
+        min-height: 25px;
+        padding: 4px 9px;
         border: 1px solid var(--dark2);
-        border-radius: 3px;
+        border-radius: 2px;
         background: var(--dark0-soft);
-        color: var(--light0);
+        color: var(--light1);
         font: inherit;
+        font-size: 10px;
         cursor: pointer;
       }
 
@@ -84,131 +107,281 @@
       }
 
       button.primary {
-        background: var(--bright-blue);
-        border-color: var(--bright-blue);
-        color: var(--dark0-hard);
+        border-color: var(--bright-aqua);
+      }
+
+      .icon-button {
+        display: grid;
+        width: 29px;
+        min-width: 29px;
+        padding: 0;
+        place-items: center;
+      }
+
+      .icon-button svg {
+        width: 13px;
+        height: 13px;
+        fill: currentColor;
+        shape-rendering: crispEdges;
       }
 
       select {
-        padding: 6px 8px;
+        width: 120px;
+        min-height: 25px;
+        padding: 3px 7px;
         border: 1px solid var(--dark2);
-        border-radius: 3px;
+        border-radius: 2px;
         background: var(--dark0-soft);
-        color: var(--light0);
+        color: var(--light1);
         font: inherit;
+        font-size: 10px;
       }
 
-      label.slider {
+      .control-row {
         display: grid;
-        grid-template-columns: 110px 1fr 62px;
-        gap: 12px;
+        grid-template-columns: 76px minmax(0, 1fr) 48px;
+        gap: 10px;
         align-items: center;
-        margin-bottom: 12px;
-        font-size: 12px;
-        color: var(--light3);
+        min-height: 42px;
+        padding: 6px 12px;
       }
 
-      label.slider output {
+      .control-row output {
         font-variant-numeric: tabular-nums;
         text-align: right;
-        color: var(--light0);
+        color: var(--light1);
       }
 
       input[type="range"] {
+        --fill: 0%;
+        appearance: none;
         width: 100%;
-        accent-color: var(--bright-blue);
+        height: 24px;
+        margin: 0;
+        background: transparent;
+        cursor: ew-resize;
+      }
+
+      input[type="range"]::-webkit-slider-runnable-track {
+        height: 4px;
+        background: linear-gradient(to right, var(--bright-aqua) 0 var(--fill), var(--dark2) var(--fill) 100%);
+      }
+
+      input[type="range"]::-webkit-slider-thumb {
+        appearance: none;
+        width: 8px;
+        height: 14px;
+        margin-top: -5px;
+        border: 0;
+        border-radius: 0;
+        background: var(--light1);
+      }
+
+      input[type="range"]::-moz-range-track {
+        height: 4px;
+        border: 0;
+        border-radius: 0;
+        background: linear-gradient(to right, var(--bright-aqua) 0 var(--fill), var(--dark2) var(--fill) 100%);
+      }
+
+      input[type="range"]::-moz-range-thumb {
+        width: 8px;
+        height: 14px;
+        border: 0;
+        border-radius: 0;
+        background: var(--light1);
+      }
+
+      input[type="range"]:disabled {
+        cursor: default;
+        opacity: 0.35;
       }
 
       canvas {
         display: block;
         width: 100%;
         height: 202px;
-        border: 1px solid var(--dark2);
-        border-radius: 3px;
+        border: 0;
+        border-radius: 2px;
         touch-action: none;
         cursor: crosshair;
       }
 
       #status {
-        min-height: 1.5em;
-        margin-top: 10px;
-        font-size: 12px;
+        min-width: 0;
+        flex: 1;
         color: var(--light3);
+        font-size: 10px;
         overflow-wrap: anywhere;
+        text-align: right;
       }
 
       #status.error {
         color: #d99a8a;
       }
 
-      #status.playing {
-        color: var(--bright-blue);
-      }
-
-      .meta {
-        margin-top: 10px;
-        font-size: 11px;
-        color: var(--dark2);
+      .eq-toolbar {
+        display: flex;
+        min-height: 36px;
+        align-items: center;
+        gap: 8px;
+        padding: 4px 12px;
       }
 
       .transport {
-        display: flex;
-        gap: 16px;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 86px;
+        gap: 10px;
         align-items: center;
-        margin-top: 14px;
-        font-size: 12px;
+        min-height: 30px;
+        padding: 0 12px 6px;
+        border-bottom: 1px solid var(--dark0-soft);
+        font-size: 10px;
         color: var(--light3);
       }
 
       .transport input[type="range"] {
-        flex: 1;
+        min-width: 0;
       }
 
+      #clock {
+        font-variant-numeric: tabular-nums;
+        text-align: right;
+      }
+
+      .surround-control {
+        display: flex;
+        justify-content: center;
+        margin-top: 6px;
+        padding-top: 6px;
+        border-top: 1px solid var(--dark0-soft);
+      }
+
+      .mode-toggle {
+        display: grid;
+        width: 162px;
+        min-height: 88px;
+        padding: 4px 8px 8px;
+        place-items: center;
+        border-color: transparent;
+        background: transparent;
+        touch-action: none;
+      }
+
+      .mode-toggle:hover:not(:disabled) {
+        border-color: var(--dark2);
+      }
+
+      .mode-toggle svg {
+        width: 64px;
+        height: 64px;
+        shape-rendering: crispEdges;
+      }
+
+      .mode-toggle .dial-arc {
+        fill: none;
+        stroke: var(--light3);
+        stroke-width: 2px;
+      }
+
+      .mode-toggle .dial-handle,
+      .mode-toggle .surround-icon {
+        fill: var(--light3);
+      }
+
+      .mode-toggle.selected .dial-arc,
+      .mode-toggle:hover:not(:disabled) .dial-arc {
+        stroke: var(--bright-orange);
+      }
+
+      .mode-toggle.selected .dial-handle,
+      .mode-toggle.selected .surround-icon,
+      .mode-toggle:hover:not(:disabled) .dial-handle,
+      .mode-toggle:hover:not(:disabled) .surround-icon {
+        fill: var(--bright-orange);
+      }
+
+      .mode-toggle.selected span {
+        color: var(--light0);
+      }
+
+      @media (max-width: 520px) {
+        body {
+          padding: 0;
+        }
+
+        main {
+          min-height: 100vh;
+          padding-inline: 12px;
+        }
+
+        #status {
+          display: none;
+        }
+
+        .source-row {
+          flex-wrap: wrap;
+        }
+
+        .control-row {
+          grid-template-columns: 66px minmax(0, 1fr) 44px;
+          padding-inline: 4px;
+        }
+
+      }
     </style>
   </head>
   <body>
     <main>
-      <h1>Śaq surround</h1>
+      <header class="titlebar">
+        <svg class="logo" viewBox="0 0 24 24" aria-hidden="true">
+          <path fill="var(--bright-orange)" d="M4 0h16v2H4zM2 2h20v2H2zM0 4h24v16H0zM2 20h20v2H2zM4 22h16v2H4z" />
+          <path fill="var(--logo-black)" d="M4 4h16v2H4zM2 6h6v2H2zM16 6h6v2h-6zM6 8h2v14H6zM16 8h2v14h-2z" />
+        </svg>
+        <h1>ŚAQ</h1>
+      </header>
 
-      <section>
-        <h2>Source</h2>
-        <div class="row">
-          <button id="file" class="primary">Open a file…</button>
-          <input id="file-input" type="file" accept="audio/*" hidden />
-          <button id="play" disabled>Play</button>
-          <button id="stop" disabled>Stop</button>
-        </div>
-        <div class="transport">
-          <input id="seek" type="range" min="0" max="1000" value="0" disabled aria-label="Progress" />
-          <span id="clock">0:00 / 0:00</span>
-        </div>
-        <p id="status">Building the audio engine…</p>
-        <p class="meta" id="source-name"></p>
-      </section>
+      <div class="row source-row">
+        <button id="file" class="icon-button primary" aria-label="Choose audio" title="Choose audio">
+          <svg viewBox="0 0 13 13" aria-hidden="true"><path d="M0 2h5l2 2h6v8H0zm1 3v6h11V5z" /></svg>
+        </button>
+        <input id="file-input" type="file" accept="audio/*" hidden />
+        <button id="play" class="icon-button" disabled aria-label="Play" title="Play">
+          <svg viewBox="0 0 13 13" aria-hidden="true"><path d="M2 1h2v2h2v2h2v2H6v2H4v2H2z" /></svg>
+        </button>
+        <button id="stop" class="icon-button" disabled aria-label="Stop" title="Stop">
+          <svg viewBox="0 0 13 13" aria-hidden="true"><path d="M2 2h9v9H2z" /></svg>
+        </button>
+        <span id="status"></span>
+      </div>
+      <div class="transport">
+        <input id="seek" type="range" min="0" max="1000" value="0" disabled aria-label="Progress" />
+        <span id="clock">0:00 / 0:00</span>
+      </div>
 
-      <section>
-        <h2>Volume</h2>
-        <label class="slider">
-          <span>Volume</span>
-          <input id="volume" type="range" min="0" max="200" value="100" />
-          <output id="volume-out">100%</output>
-        </label>
-        <label class="slider">
-          <span>Surround mix</span>
-          <input id="subwoofer" type="range" min="0" max="100" value="100" step="1" />
-          <output id="subwoofer-out">100%</output>
-        </label>
-      </section>
+      <label class="control-row">
+        <span class="label">VOL</span>
+        <input id="volume" type="range" min="0" max="200" value="100" />
+        <output id="volume-out">100%</output>
+      </label>
 
-      <section>
-        <h2>Equaliser</h2>
-        <div class="row" style="margin-bottom: 12px">
-          <select id="preset" aria-label="EQ preset"></select>
-          <button id="reset-eq">Reset curve</button>
-        </div>
-        <canvas id="eq" aria-label="Equaliser response curve"></canvas>
-      </section>
+      <div class="eq-toolbar">
+        <span class="label">EQUALIZER</span>
+        <select id="preset" aria-label="EQ preset"></select>
+        <button id="reset-eq">RESET</button>
+      </div>
+      <canvas id="eq" aria-label="Equaliser response curve"></canvas>
 
+      <div class="surround-control">
+        <button id="surround-toggle" class="mode-toggle selected" disabled aria-pressed="true" aria-label="Surround sound on, subwoofer 100%">
+          <svg id="surround-dial" viewBox="0 0 64 64" aria-hidden="true">
+            <path class="dial-arc" d="M14.322 49.678A25 25 0 1 1 49.678 49.678" />
+            <rect id="subwoofer-handle" class="dial-handle" x="27" y="4" width="10" height="6" transform="rotate(135 32 32)" />
+            <path class="surround-icon" transform="translate(18.5 18.5) scale(3)" d="M4 0h1v1H4zM2 1h2v1H2zM5 1h2v1H5zM0 2h2v1H0zM7 2h2v1H7zM0 3h1v1H0zM2 3h1v1H2zM6 3h1v1H6zM8 3h1v1H8zM0 4h1v1H0zM3 4h1v1H3zM5 4h1v1H5zM8 4h1v1H8zM0 5h1v1H0zM4 5h1v1H4zM8 5h1v1H8zM0 6h2v1H0zM4 6h1v1H4zM7 6h2v1H7zM2 7h5v1H2zM4 8h1v1H4z" />
+          </svg>
+          <span>SURROUND SOUND</span>
+        </button>
+      </div>
     </main>
 
     <script type="module">
@@ -217,9 +390,9 @@
 
       const $ = (id) => document.getElementById(id);
       const status = $("status");
-      const say = (text, kind = "") => {
-        status.textContent = text;
-        status.className = kind;
+      const showError = (message) => {
+        status.textContent = message;
+        status.className = "error";
       };
 
       const audio = new SaqAudio();
@@ -235,6 +408,23 @@
 
       const duration = () => (buffer ? buffer.duration : 0);
 
+      function paintSlider(slider) {
+        const min = Number(slider.min || 0);
+        const max = Number(slider.max || 100);
+        const fill = ((Number(slider.value) - min) / Math.max(max - min, 1)) * 100;
+        slider.style.setProperty("--fill", `${fill}%`);
+      }
+
+      function setSlider(slider, value) {
+        slider.value = String(value);
+        paintSlider(slider);
+      }
+
+      document.querySelectorAll('input[type="range"]').forEach((slider) => {
+        paintSlider(slider);
+        slider.addEventListener("input", () => paintSlider(slider));
+      });
+
       function clock(seconds) {
         const total = Math.max(0, Math.round(seconds));
         return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, "0")}`;
@@ -244,47 +434,41 @@
         if (!buffer) return;
         const elapsed = Math.min(audio.context.currentTime - startedAt, duration());
         if (!isScrubbing) {
-          $("seek").value = String(Math.round((elapsed / Math.max(duration(), 1e-6)) * 1000));
+          setSlider($("seek"), Math.round((elapsed / Math.max(duration(), 1e-6)) * 1000));
         }
         $("clock").textContent = `${clock(elapsed)} / ${clock(duration())}`;
         raf = requestAnimationFrame(tick);
       }
 
-      window.__saq = { audio, graph, get context() { return audio.context; }, get buffer() { return buffer; }, get source() { return source; }, get isScrubbing() { return isScrubbing; } };
+      function releaseSource() {
+        const active = source;
+        source = null;
+        if (!active) return;
+        try {
+          active.stop();
+        } catch {}
+        active.disconnect();
+      }
 
       function stop() {
         cancelAnimationFrame(raf);
         raf = 0;
-        const stopped = source;
-        if (stopped) {
+        if (source) {
           pausedAt = Math.max(0, Math.min(duration(), audio.context.currentTime - startedAt));
           playbackToken += 1;
-          source = null;
-          try {
-            stopped.stop();
-          } catch {}
-          stopped.disconnect();
+          releaseSource();
         }
         audio.reset();
         $("stop").disabled = true;
         $("play").disabled = !buffer;
-        $("seek").value = String(Math.round((pausedAt / Math.max(duration(), 1e-6)) * 1000));
+        setSlider($("seek"), Math.round((pausedAt / Math.max(duration(), 1e-6)) * 1000));
         $("clock").textContent = `${clock(pausedAt)} / ${clock(duration())}`;
-        say(buffer ? "Paused" : "Open a file to begin.");
       }
 
       function startFrom(offset) {
         const startAt = Math.min(offset, Math.max(0, duration() - 0.05));
-        const previous = source;
-        source = null;
-        playbackToken += 1;
-        if (previous) {
-          try {
-            previous.stop();
-          } catch {}
-          previous.disconnect();
-        }
-        const token = playbackToken;
+        releaseSource();
+        const token = ++playbackToken;
         const node = audio.context.createBufferSource();
         node.buffer = buffer;
         node.connect(audio.node);
@@ -296,9 +480,8 @@
           pausedAt = 0;
           $("stop").disabled = true;
           $("play").disabled = !buffer;
-          $("seek").value = "0";
+          setSlider($("seek"), 0);
           $("clock").textContent = `0:00 / ${clock(duration())}`;
-          say("Finished. Press Play to run it again.");
         };
         source = node;
         source.start(0, startAt);
@@ -306,7 +489,6 @@
         $("play").disabled = true;
         startedAt = audio.context.currentTime - startAt;
         pausedAt = startAt;
-        say(`Playing ${$("source-name").textContent || "audio"}`, "playing");
         cancelAnimationFrame(raf);
         raf = requestAnimationFrame(tick);
       }
@@ -319,20 +501,18 @@
       }
 
       $("play").addEventListener("click", () => {
-        play().catch((error) => say(error.message, "error"));
+        play().catch((error) => showError(error.message));
       });
       $("stop").addEventListener("click", stop);
 
-      async function adopt(audioBuffer, name) {
+      async function adopt(audioBuffer) {
         stop();
         buffer = audioBuffer;
-        $("source-name").textContent = name;
         $("play").disabled = false;
         $("seek").disabled = false;
-        $("seek").value = "0";
+        setSlider($("seek"), 0);
         $("clock").textContent = `0:00 / ${clock(audioBuffer.duration)}`;
         pausedAt = 0;
-        say("Ready. Press Play.");
       }
 
       $("seek").addEventListener("pointerdown", () => {
@@ -357,7 +537,6 @@
         } else {
           pausedAt = offset;
           $("clock").textContent = `${clock(pausedAt)} / ${clock(duration())}`;
-          say("Paused");
         }
       });
 
@@ -367,22 +546,13 @@
         event.target.value = "";
         if (!file) return;
         try {
-          say("Decoding audio…");
+          status.textContent = "";
           const array = new Uint8Array(await file.arrayBuffer());
-          await adopt(await audio.context.decodeAudioData(array.buffer), file.name);
+          await adopt(await audio.context.decodeAudioData(array.buffer));
         } catch (error) {
-          say(`could not decode ${file.name}: ${error.message ?? error}`, "error");
+          showError(`could not decode ${file.name}: ${error.message ?? error}`);
         }
       });
-
-      function checkRate(info) {
-        if (!info.rateMatches) {
-          console.warn(
-            `context at ${info.sampleRate} Hz but the engine was captured at ` +
-              `${info.engineSampleRate} Hz; preset curves will be tilted`,
-          );
-        }
-      }
 
       const select = $("preset");
       select.replaceChildren(
@@ -399,12 +569,8 @@
         }),
       );
 
-      async function responseFor(preset) {
-        return audio.presetResponse(preset, Array.from(graph.bands));
-      }
-
       async function applyPreset(preset) {
-        const response = await responseFor(preset);
+        const response = await audio.presetResponse(preset, graph.bands);
         graph.setPreset(preset, Float32Array.from(response));
         pushEq();
         graph.draw();
@@ -419,7 +585,6 @@
       }
 
       graph.onChange = () => pushEq();
-      graph.onCommit = () => pushEq();
 
       select.addEventListener("change", async (event) => {
         await applyPreset(Number(event.target.value));
@@ -445,24 +610,99 @@
         audio.param("volume", percent / 100);
       });
 
-      const subwoofer = $("subwoofer");
-      subwoofer.addEventListener("input", () => {
-        const percent = Number(subwoofer.value);
-        $("subwoofer-out").textContent = `${percent}%`;
-        audio.param("subwoofer", percent / 100);
+      const surroundToggle = $("surround-toggle");
+      const surroundDial = $("surround-dial");
+      const subwooferHandle = $("subwoofer-handle");
+      let surroundEnabled = true;
+      let subwoofer = 1;
+      let adjustingSubwoofer = false;
+
+      function describeSurround() {
+        surroundToggle.setAttribute(
+          "aria-label",
+          `Surround sound ${surroundEnabled ? "on" : "off"}, subwoofer ${Math.round(subwoofer * 100)}%`,
+        );
+      }
+
+      function setSubwoofer(value) {
+        subwoofer = Math.min(1, Math.max(0, value));
+        const halfArc = Math.PI * 0.75;
+        const angle = subwoofer * halfArc * 2 - Math.PI / 2 - halfArc;
+        subwooferHandle.setAttribute("transform", `rotate(${angle * 180 / Math.PI + 90} 32 32)`);
+        audio.param("subwoofer", subwoofer);
+        describeSurround();
+      }
+
+      function setSurround(enabled) {
+        surroundEnabled = enabled;
+        surroundToggle.classList.toggle("selected", enabled);
+        surroundToggle.setAttribute("aria-pressed", String(enabled));
+        audio.setSurround(enabled);
+        describeSurround();
+      }
+
+      function dialPointer(event) {
+        const rect = surroundDial.getBoundingClientRect();
+        return {
+          x: (event.clientX - rect.left) * 64 / rect.width - 32,
+          y: (event.clientY - rect.top) * 64 / rect.height - 32,
+        };
+      }
+
+      function subwooferAt(pointer) {
+        const halfArc = Math.PI * 0.75;
+        let angle = Math.atan2(pointer.y, pointer.x) + Math.PI / 2;
+        if (angle > Math.PI) angle -= Math.PI * 2;
+        else if (angle < -Math.PI) angle += Math.PI * 2;
+        return (Math.min(halfArc, Math.max(-halfArc, angle)) / halfArc + 1) * 0.5;
+      }
+
+      surroundDial.addEventListener("pointerdown", (event) => {
+        const pointer = dialPointer(event);
+        const radius = Math.hypot(pointer.x, pointer.y);
+        if (!surroundEnabled) {
+          setSurround(true);
+        } else if (radius < 16) {
+          setSurround(false);
+        } else {
+          adjustingSubwoofer = true;
+          surroundDial.setPointerCapture(event.pointerId);
+          setSubwoofer(subwooferAt(pointer));
+        }
+        event.preventDefault();
+      });
+      surroundDial.addEventListener("pointermove", (event) => {
+        if (adjustingSubwoofer) setSubwoofer(subwooferAt(dialPointer(event)));
+      });
+      const finishSubwoofer = (event) => {
+        if (!adjustingSubwoofer) return;
+        adjustingSubwoofer = false;
+        surroundDial.releasePointerCapture?.(event.pointerId);
+      };
+      surroundDial.addEventListener("pointerup", finishSubwoofer);
+      surroundDial.addEventListener("pointercancel", finishSubwoofer);
+      surroundToggle.addEventListener("click", (event) => {
+        if (event.detail === 0) setSurround(!surroundEnabled);
       });
 
       audio.ready().then(async (info) => {
         graph.setBands(info.eqBands);
-        checkRate(info);
+        if (!info.rateMatches) {
+          console.warn(
+            `context at ${info.sampleRate} Hz but the engine was captured at ` +
+              `${info.engineSampleRate} Hz; preset curves will be tilted`,
+          );
+        }
         await applyPreset(EQ_PRESET.Off);
         volume.dispatchEvent(new Event("input"));
-        subwoofer.dispatchEvent(new Event("input"));
+        surroundToggle.disabled = false;
+        setSubwoofer(1);
+        setSurround(true);
         graph.draw();
-        say("Open a file to begin.");
       }).catch((error) => {
-        say(`engine failed to start: ${error.message}`, "error");
+        showError(`engine failed to start: ${error.message}`);
         $("play").disabled = true;
+        surroundToggle.disabled = true;
       });
     </script>
   </body>
