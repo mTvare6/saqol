@@ -14,7 +14,7 @@
 
 rustPlatform.buildRustPackage {
   pname = "saq";
-  version = "0.1.0";
+  version = (builtins.fromTOML (builtins.readFile ../Cargo.toml)).package.version;
 
   src = lib.cleanSourceWith {
     src = ./..;
@@ -64,15 +64,15 @@ rustPlatform.buildRustPackage {
   cargoTestFlags = [ "--workspace" ];
 
   postInstall = ''
-    install -Dm644 res/com.epestr.saq.desktop \
-      "$out/share/applications/com.epestr.saq.desktop"
+    install -Dm644 res/saq.desktop \
+      "$out/share/applications/saq.desktop"
     install -Dm644 res/saq.service \
       "$out/lib/systemd/user/saq.service"
-    install -Dm644 res/com.epestr.saq.svg \
-      "$out/share/icons/hicolor/scalable/apps/com.epestr.saq.svg"
+    install -Dm644 res/saq.svg \
+      "$out/share/icons/hicolor/scalable/apps/saq.svg"
     install -Dm644 LICENSE "$out/share/licenses/saq/LICENSE"
 
-    substituteInPlace "$out/share/applications/com.epestr.saq.desktop" \
+    substituteInPlace "$out/share/applications/saq.desktop" \
       --replace-fail "/usr/bin/saq" "$out/bin/saq"
     substituteInPlace "$out/lib/systemd/user/saq.service" \
       --replace-fail "ExecStart=/usr/bin/saqd" "ExecStart=$out/bin/saqd"

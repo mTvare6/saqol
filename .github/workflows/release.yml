@@ -1,0 +1,164 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  debian:
+    name: Debian package and tarball (${{ matrix.release_arch }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-26.04
+            release_arch: x86_64
+            deb_arch: amd64
+          - runner: ubuntu-26.04-arm
+            release_arch: aarch64
+            deb_arch: arm64
+    runs-on: ${{ matrix.runner }}
+    env:
+      RELEASE_ARCH: ${{ matrix.release_arch }}
+      DEB_ARCH: ${{ matrix.deb_arch }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Validate version
+        run: |
+          version=$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[] | select(.name == "saq") | .version')
+          test "$GITHUB_REF_TYPE" != tag || test "$GITHUB_REF_NAME" = "v$version"
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends \
+            desktop-file-utils libclang-dev libgl1-mesa-dev libpipewire-0.3-dev \
+            libwayland-dev libx11-dev libxcursor-dev libxi-dev libxkbcommon-dev \
+            libxrandr-dev pkg-config
+
+      - name: Build and test
+        run: |
+          desktop-file-validate res/saq.desktop
+          cargo test --locked --release --workspace
+          cargo build --locked --release --bins --package saq
+
+      - name: Package
+        run: |
+          mkdir -p dist
+
+          bundle="dist/saq-$VERSION-$RELEASE_ARCH"
+          sh packaging/install-root.sh "$bundle" "" saq
+          tar --sort=name --mtime="@$(git log -1 --format=%ct)" \
+            --owner=0 --group=0 --numeric-owner \
+            -C dist -czf "dist/saq-$VERSION-$RELEASE_ARCH.tar.gz" "$(basename "$bundle")"
+          rm -rf "$bundle"
+
+          package=$(mktemp -d)
+          sh packaging/install-root.sh "$package" /usr saq
+          mkdir -p "$package/DEBIAN"
+          cat > "$package/DEBIAN/control" <<EOF
+          Package: saq
+          Version: $VERSION
+          Section: sound
+          Priority: optional
+          Architecture: $DEB_ARCH
+          Maintainer: mTvare6 <mTvare6@proton.me>
+          Depends: libc6, libegl1, libgcc-s1, libgl1, libpipewire-0.3-0, libwayland-client0, libwayland-egl1, libx11-6, libx11-xcb1, libxcursor1, libxi6, libxkbcommon0, libxkbcommon-x11-0, libxrandr2, libxrender1
+          Recommends: pipewire, wireplumber
+          Homepage: https://github.com/mTvare6/saqol
+          Description: Real-time easy-to-use audio enhancer for Linux
+           Śaq provides a PipeWire audio daemon, graphical client, and command-line controller.
+          EOF
+          dpkg-deb --root-owner-group --build "$package" "dist/saq_${VERSION}_${DEB_ARCH}.deb"
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: debian-${{ matrix.deb_arch }}
+          path: dist/*
+          if-no-files-found: error
+
+  arch:
+    name: Arch package
+    runs-on: ubuntu-latest
+    container: archlinux:base-devel
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Install build dependencies
+        run: |
+          pacman -Syu --noconfirm \
+            clang git jq libglvnd libx11 libxcursor libxi libxkbcommon \
+            libxkbcommon-x11 libxrandr pipewire pkgconf rust wayland
+
+      - name: Build package
+        working-directory: ${{ github.workspace }}
+        run: |
+          version=$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[] | select(.name == "saq") | .version')
+          test "$GITHUB_REF_TYPE" != tag || test "$GITHUB_REF_NAME" = "v$version"
+          build=$(mktemp -d)
+          tar --exclude=.git --exclude=target --transform="s|^|saq-$version/|" \
+            -czf "$build/saq-$version.tar.gz" .
+          checksum=$(sha256sum "$build/saq-$version.tar.gz" | cut -d ' ' -f 1)
+          sed -e "s/@VERSION@/$version/" -e "s/@SHA256@/$checksum/" \
+            packaging/arch/PKGBUILD > "$build/PKGBUILD"
+          useradd --create-home builder
+          chown -R builder:builder "$build"
+          runuser -u builder -- sh -c "cd '$build' && makepkg --noconfirm --clean"
+          mkdir dist
+          cp "$build"/*.pkg.tar.zst dist/
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: arch
+          path: dist/*
+          if-no-files-found: error
+
+  publish:
+    name: Publish release
+    if: github.ref_type == 'tag'
+    needs: [debian, arch]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+      artifact-metadata: write
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Create checksums
+        working-directory: dist
+        run: sha256sum * > SHA256SUMS
+
+      - name: Attest artifacts
+        uses: actions/attest@v4
+        with:
+          subject-path: dist/*
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          prerelease=()
+          [[ "$GITHUB_REF_NAME" == *-* ]] && prerelease+=(--prerelease)
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" dist/* --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" dist/* \
+              --verify-tag --generate-notes --title "Śaq ${GITHUB_REF_NAME#v}" \
+              "${prerelease[@]}"
+          fi

@@ -3,12 +3,10 @@ Name=Śaq
 GenericName=Audio Effects
 Exec=/usr/bin/saq
 TryExec=/usr/bin/saq
-Icon=com.epestr.saq
+Icon=saq
 Terminal=false
 Type=Application
 StartupNotify=true
 Categories=AudioVideo;Audio;
 Keywords=audio;effects;pipewire;spatial;surround;
 StartupWMClass=saq
-
-X-Desktop-File-Install-Version=0.28

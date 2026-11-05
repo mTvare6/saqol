@@ -27,7 +27,34 @@ cargo run --bin saq --release
 cargo run --bin saqctl --release -- pitch enable
 ```
 
-### Installing
+### Download
+
+Download Debian, Arch Linux, or generic Linux package from the [releases page](https://github.com/mTvare6/saqol/releases/latest).
+
+Debian and Ubuntu:
+
+```sh
+sudo apt install ./saq_<version>_<architecture>.deb
+systemctl --user enable --now saq.service
+```
+
+Arch Linux:
+
+```sh
+sudo pacman -U ./saq-<version>-1-x86_64.pkg.tar.zst
+systemctl --user enable --now saq.service
+```
+
+Generic Linux archive:
+
+```sh
+tar xf saq-<version>-<architecture>.tar.gz
+sudo cp -a saq-<version>-<architecture>/{bin,lib,share} /usr/
+systemctl --user daemon-reload
+systemctl --user enable --now saq.service
+```
+
+### Installing from source
 
 ```sh
 ./res/install.sh
@@ -65,10 +92,10 @@ nix run .#daemon # daemon
   - [ ] Variable sample rate
 - [ ] Desktop integration
   - [x] Init system integration
-  - [ ] Package manager support
+  - [x] Package manager support
       - [x] Arch
       - [x] Nix
-      - [ ] Debian
+      - [x] Debian
   - [ ] Desktop environment-like projects
 
 ### License

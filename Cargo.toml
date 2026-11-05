@@ -3,6 +3,9 @@ name = "saq"
 version = "0.1.0"
 edition = "2024"
 license = "MPL-2.0"
+description = "Real-time easy-to-use audio enhancer for Linux"
+repository = "https://github.com/mTvare6/saqol"
+homepage = "https://mtvare6.github.io/saqol/"
 default-run = "saqd"
 
 [workspace]

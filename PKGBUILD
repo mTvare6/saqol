@@ -15,6 +15,7 @@ depends=(
   'libxcursor'
   'libxi'
   'libxkbcommon'
+  'libxkbcommon-x11'
   'libxrandr'
   'pipewire'
   'wayland'
@@ -56,10 +57,5 @@ check() {
 
 package() {
   cd saq
-  install -Dm755 target/release/saq target/release/saqctl target/release/saqd \
-    -t "$pkgdir/usr/bin"
-  install -Dm644 res/com.epestr.saq.desktop "$pkgdir/usr/share/applications/com.epestr.saq.desktop"
-  install -Dm644 res/saq.service "$pkgdir/usr/lib/systemd/user/saq.service"
-  install -Dm644 res/com.epestr.saq.svg "$pkgdir/usr/share/icons/hicolor/scalable/apps/com.epestr.saq.svg"
-  install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+  sh packaging/install-root.sh "$pkgdir" /usr "$pkgname"
 }

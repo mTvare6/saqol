@@ -1,0 +1,52 @@
+# SPDX-License-Identifier: MPL-2.0
+
+pkgname=saq
+pkgver=@VERSION@
+pkgrel=1
+pkgdesc='A real-time easy to use audio enhancer for Linux'
+arch=('x86_64')
+url='https://github.com/mTvare6/saqol'
+license=('MPL-2.0')
+depends=(
+  'gcc-libs'
+  'glibc'
+  'libglvnd'
+  'libx11'
+  'libxcursor'
+  'libxi'
+  'libxkbcommon'
+  'libxkbcommon-x11'
+  'libxrandr'
+  'pipewire'
+  'wayland'
+)
+makedepends=('cargo' 'pkgconf')
+conflicts=('saq-git')
+options=('!lto')
+source=("$pkgname-$pkgver.tar.gz")
+sha256sums=('@SHA256@')
+
+prepare() {
+  cd "$pkgname-$pkgver"
+  export RUSTUP_TOOLCHAIN=stable
+  cargo fetch --locked --target "$CARCH-unknown-linux-gnu"
+}
+
+build() {
+  cd "$pkgname-$pkgver"
+  export RUSTUP_TOOLCHAIN=stable
+  export CARGO_TARGET_DIR=target
+  cargo build --frozen --release --bins --package saq
+}
+
+check() {
+  cd "$pkgname-$pkgver"
+  export RUSTUP_TOOLCHAIN=stable
+  export CARGO_TARGET_DIR=target
+  cargo test --frozen --release --workspace
+}
+
+package() {
+  cd "$pkgname-$pkgver"
+  sh packaging/install-root.sh "$pkgdir" /usr "$pkgname"
+}
